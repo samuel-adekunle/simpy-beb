@@ -1,5 +1,6 @@
 import simpy
 import random
+import logging
 from common import *
 
 class PointToPointLink(Process):
@@ -20,11 +21,13 @@ class PointToPointLink(Process):
         self.max_delay = max_delay
 
     def add_process(self, process):
+        logging.info(f"Adding Process {process} to PointToPointLink {self.id}")
         self.processes.append(process)
         self.in_pipes[process] = simpy.Store(self.env, capacity=self.capacity)
         self.out_pipes[process] = simpy.Store(self.env, capacity=self.capacity)
 
     def put(self, event):
+        logging.info(f"PointToPointLink {self.id} sending event {event.id} from {event.source} to {event.destination}")
         yield self.env.timeout(random.randint(self.min_delay, self.max_delay))
         source_process = event.source
         yield self.in_pipes[source_process].put(event)
@@ -34,6 +37,7 @@ class PointToPointLink(Process):
         return self.out_pipes[destination_process].get()
     
     def run(self):
+        logging.info(f"PointToPointLink {self.id} started")
         while True:
             with self.get(self.id) as req:
                 result = yield self.env.any_of([pipe.get() for pipe in self.in_pipes.values()]) | req
@@ -51,7 +55,8 @@ class PointToPointLink(Process):
                 self.env.process(self.handle_event(event))
 
     def handle_event(self, event):
-      raise NotImplementedError("Subclass must implement abstract method")      
+        logging.info(f"PointToPointLink {self.id} handling event {event.id} received from {event.source}")
+        raise NotImplementedError("Subclass must implement abstract method")      
 
     def _pl_deliver_event(self, event):
         return Event(generate_id(), "pl_deliver", self.id, event.source, event.data)

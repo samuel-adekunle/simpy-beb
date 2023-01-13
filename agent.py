@@ -13,6 +13,7 @@ class Sender(Process):
         self.max_delay = max_delay
 
     def run(self):
+        logging.info(f"Sender {self.id} started")
         for i in range(self.counter):
             with self.pl.get(self.id) as req:
               result = yield self.env.timeout(random.randint(self.min_delay, self.max_delay)) | req
@@ -26,6 +27,7 @@ class Sender(Process):
               self.env.process(self.handle_event(event))
 
     def handle_event(self, event):
+        logging.info(f"PointToPointLink {self.id} handling event {event.id} received from {event.source}")
         raise NotImplementedError("Subclass must implement abstract method")
 
 
@@ -36,10 +38,12 @@ class Receiver(Process):
         self.pl.add_process(self.id)
 
     def run(self):
+        logging.info(f"Receiver {self.id} started")
         while True:
             with self.pl.get(self.id) as req:
                 event = yield req
                 self.env.process(self.handle_event(event))
 
     def handle_event(self, event):
+        logging.info(f"PointToPointLink {self.id} handling event {event.id} received from {event.source}")
         raise NotImplementedError("Subclass must implement abstract method")
